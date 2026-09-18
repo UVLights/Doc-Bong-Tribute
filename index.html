@@ -441,14 +441,10 @@
     aspect-ratio: 16 / 9;
     width: 100%;
     max-width: 560px;
+    height: auto;
     cursor: default;
-  }
-
-  @media (max-width: 480px) {
-    .video-thumb,
-    .video-thumb.is-playing {
-      max-width: 100%;
-    }
+    /* Fallback height for browsers weak on aspect-ratio */
+    min-height: 0;
   }
 
   .video-thumb.is-playing img,
@@ -459,11 +455,44 @@
 
   .video-thumb iframe {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     border: 0;
     display: block;
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .video-section .video-thumb,
+    .video-section .video-thumb.is-playing {
+      max-width: 100%;
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+      border-radius: 8px;
+    }
+
+    .video-thumb.is-playing {
+      aspect-ratio: 16 / 9;
+      /* Explicit padding-bottom fallback keeps iframe fitted on older mobile */
+      height: 0;
+      padding-bottom: 56.25%;
+      position: relative;
+    }
+
+    .video-thumb.is-playing iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .video-caption {
+      max-width: 100%;
+    }
   }
 
   .video-caption {
@@ -765,42 +794,3 @@
   }
 
   var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
-
-  reveals.forEach(function (el) { observer.observe(el); });
-})();
-
-// Play the tribute video in place on all devices (same tab)
-(function () {
-  var thumb = document.getElementById('video-thumb');
-  var caption = document.getElementById('video-caption');
-  if (!thumb) return;
-
-  var VIDEO_FILE_ID = '1w5p_rgLRuGIE1pQtYKt6SbLhMQ3MFJvr';
-  if (!VIDEO_FILE_ID) return;
-
-  thumb.addEventListener('click', function (e) {
-    e.preventDefault();
-    if (thumb.classList.contains('is-playing')) return;
-
-    thumb.classList.add('is-playing');
-    var frame = document.createElement('iframe');
-    frame.src = 'https://drive.google.com/file/d/' + VIDEO_FILE_ID + '/preview';
-    frame.allow = 'autoplay; fullscreen';
-    frame.setAttribute('allowfullscreen', '');
-    frame.setAttribute('playsinline', '');
-    frame.title = 'Tribute video for Hilbart S. Pizarro';
-    thumb.appendChild(frame);
-    if (caption) caption.textContent = 'Playing the tribute video';
-  });
-})();
-</script>
-
-</body>
-</html>

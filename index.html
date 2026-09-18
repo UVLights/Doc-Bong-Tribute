@@ -805,7 +805,9 @@
   reveals.forEach(function (el) { observer.observe(el); });
 })();
 
-// Play the tribute video in place on all devices (same tab)
+// Play the tribute video in place on the same tab.
+// On mobile, also offer fullscreen so the video can be viewed larger
+// (true pinch-zoom inside a cross-origin Drive embed is blocked by browsers).
 (function () {
   var thumb = document.getElementById('video-thumb');
   var caption = document.getElementById('video-caption');
@@ -814,19 +816,58 @@
   var VIDEO_FILE_ID = '1w5p_rgLRuGIE1pQtYKt6SbLhMQ3MFJvr';
   if (!VIDEO_FILE_ID) return;
 
+  function isMobile() {
+    return window.matchMedia('(max-width: 768px)').matches ||
+      ('ontouchstart' in window && Math.min(window.innerWidth, window.innerHeight) < 768);
+  }
+
+  function requestFs(el) {
+    var req = el.requestFullscreen || el.webkitRequestFullscreen ||
+      el.msRequestFullscreen || el.mozRequestFullScreen;
+    if (req) {
+      try { return req.call(el); } catch (err) {}
+    }
+    // Some mobile browsers only allow fullscreen on the iframe itself
+    var frame = el.querySelector('iframe');
+    if (frame) {
+      req = frame.requestFullscreen || frame.webkitRequestFullscreen;
+      if (req) {
+        try { return req.call(frame); } catch (err) {}
+      }
+    }
+  }
+
   thumb.addEventListener('click', function (e) {
     e.preventDefault();
-    if (thumb.classList.contains('is-playing')) return;
+
+    // Already playing: second tap on mobile tries fullscreen again
+    if (thumb.classList.contains('is-playing')) {
+      if (isMobile()) requestFs(thumb);
+      return;
+    }
 
     thumb.classList.add('is-playing');
     var frame = document.createElement('iframe');
     frame.src = 'https://drive.google.com/file/d/' + VIDEO_FILE_ID + '/preview';
-    frame.allow = 'autoplay; fullscreen';
+    frame.allow = 'autoplay; fullscreen; picture-in-picture';
     frame.setAttribute('allowfullscreen', '');
+    frame.setAttribute('webkitallowfullscreen', '');
     frame.setAttribute('playsinline', '');
     frame.title = 'Tribute video for Hilbart S. Pizarro';
     thumb.appendChild(frame);
-    if (caption) caption.textContent = 'Playing the tribute video';
+
+    if (caption) {
+      caption.textContent = isMobile()
+        ? 'Playing here — tap the video again for fullscreen'
+        : 'Playing the tribute video';
+    }
+
+    // Enter fullscreen shortly after load on mobile for a larger view
+    if (isMobile()) {
+      frame.addEventListener('load', function () {
+        setTimeout(function () { requestFs(thumb); }, 300);
+      });
+    }
   });
 })();
 </script>

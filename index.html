@@ -438,30 +438,46 @@
   .play-badge svg { fill: #FAF8F4; margin-left: 3px; }
 
   .video-thumb.is-playing {
-    aspect-ratio: 16 / 9;
+    position: relative;
+    display: block;
     width: 100%;
     max-width: 560px;
+    aspect-ratio: 16 / 9;
     height: auto;
     cursor: default;
-    /* Fallback height for browsers weak on aspect-ratio */
-    min-height: 0;
+    overflow: hidden;
   }
 
   .video-thumb.is-playing img,
   .video-thumb.is-playing::after,
   .video-thumb.is-playing .play-badge {
-    display: none;
+    display: none !important;
   }
 
   .video-thumb iframe {
     position: absolute;
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     height: 100%;
     border: 0;
     display: block;
-    max-width: 100%;
+    max-width: none;
+  }
+
+  /* Stable 16:9 fallback when aspect-ratio is unsupported */
+  .video-thumb.is-playing::before {
+    content: "";
+    display: block;
+    padding-bottom: 56.25%;
+  }
+
+  @supports (aspect-ratio: 16 / 9) {
+    .video-thumb.is-playing::before {
+      display: none;
+    }
   }
 
   @media (max-width: 640px) {
@@ -472,22 +488,6 @@
       margin-left: 0;
       margin-right: 0;
       border-radius: 8px;
-    }
-
-    .video-thumb.is-playing {
-      aspect-ratio: 16 / 9;
-      /* Explicit padding-bottom fallback keeps iframe fitted on older mobile */
-      height: 0;
-      padding-bottom: 56.25%;
-      position: relative;
-    }
-
-    .video-thumb.is-playing iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
     }
 
     .video-caption {
@@ -868,6 +868,30 @@
         setTimeout(function () { requestFs(thumb); }, 300);
       });
     }
+  });
+
+  // When leaving fullscreen or returning to the page, force the player to refit
+  function refitPlayer() {
+    if (!thumb.classList.contains('is-playing')) return;
+    var frame = thumb.querySelector('iframe');
+    if (!frame) return;
+    // Trigger reflow so width/height recalculate against the 16:9 box
+    thumb.style.display = 'none';
+    void thumb.offsetHeight;
+    thumb.style.display = '';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+  }
+
+  document.addEventListener('fullscreenchange', refitPlayer);
+  document.addEventListener('webkitfullscreenchange', refitPlayer);
+  window.addEventListener('pageshow', refitPlayer);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(refitPlayer, 150);
+  });
+  window.addEventListener('resize', function () {
+    clearTimeout(window.__videoRefitTimer);
+    window.__videoRefitTimer = setTimeout(refitPlayer, 100);
   });
 })();
 </script>
